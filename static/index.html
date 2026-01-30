@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Clipper - Download Video & Subtitle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #212121;
+            --bg-hover: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --text-muted: #717171;
+            --accent: #ff0000;
+            --accent-hover: #cc0000;
+            --border: #303030;
+            --success: #2ba640;
+            --error: #cc0000;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #ff4444);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--bg-secondary);
+            padding: 6px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .tab-btn.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .tab-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+        }
+
+        .card + .card {
+            margin-top: 20px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .input-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            padding: 14px 16px;
+            padding-left: 44px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-primary);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .input-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-muted);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        /* Video Info */
+        .video-info {
+            display: none;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .video-info.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .video-header {
+            display: flex;
+            gap: 16px;
+        }
+
+        .video-thumbnail {
+            width: 160px;
+            height: 90px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--bg-card);
+        }
+
+        .video-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .video-details h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .video-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .video-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .video-meta svg {
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Progress Section */
+        .progress-section {
+            display: none;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .progress-section.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .progress-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-card);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Result Section */
+        .result-section {
+            display: none;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .result-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .result-icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .result-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+        }
+
+        .result-section p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .result-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        /* Subtitle List */
+        .subtitle-section {
+            display: none;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .subtitle-section.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .subtitle-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .subtitle-header h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .subtitle-header svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+        }
+
+        .subtitle-list {
+            max-height: 320px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .subtitle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s ease;
+        }
+
+        .subtitle-item:last-child {
+            border-bottom: none;
+        }
+
+        .subtitle-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .subtitle-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .subtitle-lang {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .subtitle-code {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .subtitle-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 100px;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            width: fit-content;
+        }
+
+        .subtitle-type.auto {
+            background: rgba(43, 166, 64, 0.15);
+            color: var(--success);
+        }
+
+        .subtitle-type svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .subtitle-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .format-select {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .format-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Error Message */
+        .error-message {
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 14px 16px;
+            background: rgba(204, 0, 0, 0.1);
+            border: 1px solid rgba(204, 0, 0, 0.3);
+            border-radius: var(--radius-md);
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .error-message svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .spinner.show {
+            display: inline-block;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Animations */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .tab-btn {
+                padding: 10px 14px;
+                font-size: 0.875rem;
+            }
+
+            .tab-btn svg {
+                display: none;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .time-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .video-header {
+                flex-direction: column;
+            }
+
+            .video-thumbnail {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 16/9;
+            }
+
+            .subtitle-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .subtitle-actions {
+                width: 100%;
+            }
+
+            .subtitle-actions .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="film"></i>
+                </div>
+                <h1>YouTube Clipper</h1>
+            </div>
+            <p>Download video & subtitle dengan mudah</p>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="clipper" onclick="switchTab('clipper')">
+                <i data-lucide="scissors"></i>
+                <span>Video Clipper</span>
+            </button>
+            <button class="tab-btn" data-tab="subtitle" onclick="switchTab('subtitle')">
+                <i data-lucide="subtitles"></i>
+                <span>Subtitle</span>
+            </button>
+        </nav>
+
+        <!-- Video Clipper Tab -->
+        <div id="clipperTab" class="tab-content active">
+            <div class="card">
+                <div class="error-message" id="clipperError">
+                    <i data-lucide="alert-circle"></i>
+                    <span id="clipperErrorText"></span>
+                </div>
+                
+                <form id="clipperForm">
+                    <div class="form-group">
+                        <label for="videoUrl">URL YouTube</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <i data-lucide="link"></i>
+                            </span>
+                            <input 
+                                type="url" 
+                                id="videoUrl" 
+                                placeholder="https://www.youtube.com/watch?v=..."
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="time-inputs">
+                        <div class="form-group">
+                            <label for="startTime">Waktu Mulai</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">
+                                    <i data-lucide="play-circle"></i>
+                                </span>
+                                <input 
+                                    type="text" 
+                                    id="startTime" 
+                                    placeholder="00:00"
+                                    pattern="[0-9]+:[0-5][0-9](:[0-5][0-9])?"
+                                    required
+                                >
+                            </div>
+                            <div class="input-hint">Format: MM:SS atau HH:MM:SS</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="endTime">Waktu Selesai</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">
+                                    <i data-lucide="stop-circle"></i>
+                                </span>
+                                <input 
+                                    type="text" 
+                                    id="endTime" 
+                                    placeholder="00:00"
+                                    pattern="[0-9]+:[0-5][0-9](:[0-5][0-9])?"
+                                    required
+                                >
+                            </div>
+                            <div class="input-hint">Format: MM:SS atau HH:MM:SS</div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="clipperSubmit">
+                        <span class="spinner" id="clipperSpinner"></span>
+                        <i data-lucide="download" id="clipperIcon"></i>
+                        <span id="clipperBtnText">Proses & Download</span>
+                    </button>
+                </form>
+
+                <!-- Video Info -->
+                <div class="video-info" id="clipperVideoInfo">
+                    <div class="video-header">
+                        <img class="video-thumbnail" id="clipperThumbnail" src="" alt="Thumbnail">
+                        <div class="video-details">
+                            <h3 id="clipperTitle"></h3>
+                            <div class="video-meta">
+                                <span>
+                                    <i data-lucide="user"></i>
+                                    <span id="clipperUploader"></span>
+                                </span>
+                                <span>
+                                    <i data-lucide="clock"></i>
+                                    <span id="clipperDuration"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="progress-section" id="clipperProgress">
+                    <div class="progress-header">
+                        <i data-lucide="loader" class="spin"></i>
+                        <h3>Memproses Video</h3>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="clipperProgressBar"></div>
+                    </div>
+                    <div class="progress-text" id="clipperProgressText">Mempersiapkan...</div>
+                </div>
+
+                <!-- Result -->
+                <div class="result-section" id="clipperResult">
+                    <div class="result-icon">
+                        <i data-lucide="check"></i>
+                    </div>
+                    <h3>Berhasil!</h3>
+                    <p>Video clip sudah siap diunduh</p>
+                    <div class="result-actions">
+                        <a id="clipperDownload" href="#" class="btn btn-primary">
+                            <i data-lucide="download"></i>
+                            Download Video
+                        </a>
+                        <button class="btn btn-secondary" onclick="resetClipper()">
+                            <i data-lucide="refresh-cw"></i>
+                            Potong Video Lain
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subtitle Tab -->
+        <div id="subtitleTab" class="tab-content">
+            <div class="card">
+                <div class="error-message" id="subtitleError">
+                    <i data-lucide="alert-circle"></i>
+                    <span id="subtitleErrorText"></span>
+                </div>
+                
+                <form id="subtitleForm">
+                    <div class="form-group">
+                        <label for="subtitleUrl">URL YouTube</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">
+                                <i data-lucide="link"></i>
+                            </span>
+                            <input 
+                                type="url" 
+                                id="subtitleUrl" 
+                                placeholder="https://www.youtube.com/watch?v=..."
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="subtitleSubmit">
+                        <span class="spinner" id="subtitleSpinner"></span>
+                        <i data-lucide="search" id="subtitleIcon"></i>
+                        <span id="subtitleBtnText">Cari Subtitle</span>
+                    </button>
+                </form>
+
+                <!-- Subtitle Video Info -->
+                <div class="video-info" id="subtitleVideoInfo">
+                    <div class="video-header">
+                        <img class="video-thumbnail" id="subtitleThumbnail" src="" alt="Thumbnail">
+                        <div class="video-details">
+                            <h3 id="subtitleTitle"></h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subtitle List -->
+                <div class="subtitle-section" id="subtitleSection">
+                    <div class="subtitle-header">
+                        <i data-lucide="list"></i>
+                        <h4>Subtitle Tersedia</h4>
+                    </div>
+                    <div class="subtitle-list" id="subtitleList"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Made with care for local use</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // ========== TAB SWITCHING ==========
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // ========== VIDEO CLIPPER ==========
+        const clipperForm = document.getElementById('clipperForm');
+        const clipperSubmit = document.getElementById('clipperSubmit');
+        const clipperBtnText = document.getElementById('clipperBtnText');
+        const clipperSpinner = document.getElementById('clipperSpinner');
+        const clipperIcon = document.getElementById('clipperIcon');
+        const clipperError = document.getElementById('clipperError');
+        const clipperErrorText = document.getElementById('clipperErrorText');
+        const clipperVideoInfo = document.getElementById('clipperVideoInfo');
+        const clipperProgress = document.getElementById('clipperProgress');
+        const clipperResult = document.getElementById('clipperResult');
+
+        let debounceTimer;
+        document.getElementById('videoUrl').addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const url = e.target.value;
+            
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                debounceTimer = setTimeout(() => fetchClipperVideoInfo(url), 800);
+            }
+        });
+
+        async function fetchClipperVideoInfo(url) {
+            try {
+                const response = await fetch(`/api/video-info?url=${encodeURIComponent(url)}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById('clipperThumbnail').src = data.thumbnail;
+                document.getElementById('clipperTitle').textContent = data.title;
+                document.getElementById('clipperUploader').textContent = data.uploader;
+                document.getElementById('clipperDuration').textContent = data.duration_string;
+                
+                clipperVideoInfo.classList.add('show');
+                hideClipperError();
+                
+            } catch (err) {
+                console.error('Error:', err);
+            }
+        }
+
+        clipperForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = document.getElementById('videoUrl').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            if (!validateTimeFormat(startTime) || !validateTimeFormat(endTime)) {
+                showClipperError('Format waktu tidak valid. Gunakan MM:SS atau HH:MM:SS');
+                return;
+            }
+            
+            const startSeconds = timeToSeconds(startTime);
+            const endSeconds = timeToSeconds(endTime);
+            
+            if (startSeconds >= endSeconds) {
+                showClipperError('Waktu mulai harus lebih kecil dari waktu selesai');
+                return;
+            }
+            
+            if (endSeconds - startSeconds > 600) {
+                showClipperError('Durasi clip maksimal 10 menit');
+                return;
+            }
+            
+            hideClipperError();
+            setClipperLoading(true);
+            clipperProgress.classList.add('show');
+            clipperVideoInfo.classList.remove('show');
+            
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, start_time: startTime, end_time: endTime })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+                
+                const data = await response.json();
+                pollClipperProgress(data.download_id);
+                
+            } catch (err) {
+                setClipperLoading(false);
+                clipperProgress.classList.remove('show');
+                showClipperError(err.message || 'Terjadi kesalahan saat memproses video');
+            }
+        });
+
+        async function pollClipperProgress(downloadId) {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/progress/${downloadId}`);
+                    const data = await response.json();
+                    
+                    document.getElementById('clipperProgressBar').style.width = `${data.progress}%`;
+                    document.getElementById('clipperProgressText').textContent = data.message;
+                    
+                    if (data.status === 'completed') {
+                        clearInterval(pollInterval);
+                        setClipperLoading(false);
+                        clipperProgress.classList.remove('show');
+                        document.getElementById('clipperDownload').href = data.download_url;
+                        clipperResult.classList.add('show');
+                    } else if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        setClipperLoading(false);
+                        clipperProgress.classList.remove('show');
+                        showClipperError(data.message);
+                    }
+                    
+                } catch (err) {
+                    console.error('Error polling:', err);
+                }
+            }, 1000);
+        }
+
+        function resetClipper() {
+            clipperForm.reset();
+            clipperResult.classList.remove('show');
+            clipperVideoInfo.classList.remove('show');
+            document.getElementById('clipperProgressBar').style.width = '0%';
+            hideClipperError();
+        }
+
+        function setClipperLoading(loading) {
+            clipperSubmit.disabled = loading;
+            clipperSpinner.classList.toggle('show', loading);
+            clipperIcon.style.display = loading ? 'none' : 'block';
+            clipperBtnText.textContent = loading ? 'Memproses...' : 'Proses & Download';
+        }
+
+        function showClipperError(message) {
+            clipperErrorText.textContent = message;
+            clipperError.classList.add('show');
+        }
+
+        function hideClipperError() {
+            clipperError.classList.remove('show');
+        }
+
+        // ========== SUBTITLE DOWNLOADER ==========
+        const subtitleForm = document.getElementById('subtitleForm');
+        const subtitleSubmit = document.getElementById('subtitleSubmit');
+        const subtitleBtnText = document.getElementById('subtitleBtnText');
+        const subtitleSpinner = document.getElementById('subtitleSpinner');
+        const subtitleIcon = document.getElementById('subtitleIcon');
+        const subtitleError = document.getElementById('subtitleError');
+        const subtitleErrorText = document.getElementById('subtitleErrorText');
+        const subtitleVideoInfo = document.getElementById('subtitleVideoInfo');
+        const subtitleSection = document.getElementById('subtitleSection');
+        const subtitleList = document.getElementById('subtitleList');
+
+        let currentVideoUrl = '';
+
+        let subtitleDebounceTimer;
+        document.getElementById('subtitleUrl').addEventListener('input', (e) => {
+            clearTimeout(subtitleDebounceTimer);
+            const url = e.target.value;
+            
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                subtitleDebounceTimer = setTimeout(() => fetchSubtitleInfo(url), 800);
+            }
+        });
+
+        async function fetchSubtitleInfo(url) {
+            try {
+                const response = await fetch(`/api/subtitles?url=${encodeURIComponent(url)}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+                
+                const data = await response.json();
+                currentVideoUrl = url;
+                
+                document.getElementById('subtitleThumbnail').src = `https://img.youtube.com/vi/${data.video_id}/mqdefault.jpg`;
+                document.getElementById('subtitleTitle').textContent = data.title;
+                subtitleVideoInfo.classList.add('show');
+                
+                renderSubtitleList(data.available_subtitles);
+                hideSubtitleError();
+                
+            } catch (err) {
+                showSubtitleError(err.message);
+            }
+        }
+
+        function renderSubtitleList(subtitles) {
+            subtitleList.innerHTML = '';
+            
+            const langCodes = Object.keys(subtitles);
+            if (langCodes.length === 0) {
+                subtitleList.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">Tidak ada subtitle tersedia untuk video ini.</div>';
+                subtitleSection.classList.add('show');
+                return;
+            }
+            
+            // Sort: manual first, then auto
+            const sortedCodes = langCodes.sort((a, b) => {
+                const aIsAuto = subtitles[a].type === 'auto';
+                const bIsAuto = subtitles[b].type === 'auto';
+                if (aIsAuto === bIsAuto) return a.localeCompare(b);
+                return aIsAuto ? 1 : -1;
+            });
+            
+            sortedCodes.forEach(langCode => {
+                const sub = subtitles[langCode];
+                const item = document.createElement('div');
+                item.className = 'subtitle-item';
+                
+                const isAuto = sub.type === 'auto';
+                
+                item.innerHTML = `
+                    <div class="subtitle-info">
+                        <span class="subtitle-lang">${sub.name}</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="subtitle-code">${langCode}</span>
+                            <span class="subtitle-type ${isAuto ? 'auto' : ''}">
+                                <i data-lucide="${isAuto ? 'bot' : 'pen-tool'}"></i>
+                                ${isAuto ? 'Auto-generated' : 'Manual'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="subtitle-actions">
+                        <select class="format-select" id="format-${langCode}">
+                            <option value="srt">SRT</option>
+                            <option value="vtt">VTT</option>
+                            <option value="txt">TXT</option>
+                        </select>
+                        <button class="btn btn-primary btn-small" onclick="downloadSubtitle('${langCode}')">
+                            <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                            Download
+                        </button>
+                    </div>
+                `;
+                
+                subtitleList.appendChild(item);
+            });
+            
+            // Re-init icons for new elements
+            lucide.createIcons();
+            subtitleSection.classList.add('show');
+        }
+
+        async function downloadSubtitle(langCode) {
+            const format = document.getElementById(`format-${langCode}`).value;
+            
+            setSubtitleLoading(true);
+            
+            try {
+                const response = await fetch('/api/download-subtitle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: currentVideoUrl, lang: langCode, format })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+                
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = `subtitle_${langCode}.${format}`;
+                if (disposition && disposition.includes('filename=')) {
+                    const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match) filename = match[1].replace(/['"]/g, '');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                
+                hideSubtitleError();
+                
+            } catch (err) {
+                showSubtitleError(err.message || 'Gagal mendownload subtitle');
+            } finally {
+                setSubtitleLoading(false);
+            }
+        }
+
+        subtitleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('subtitleUrl').value;
+            
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                await fetchSubtitleInfo(url);
+            } else {
+                showSubtitleError('URL YouTube tidak valid');
+            }
+        });
+
+        function setSubtitleLoading(loading) {
+            subtitleSubmit.disabled = loading;
+            subtitleSpinner.classList.toggle('show', loading);
+            subtitleIcon.style.display = loading ? 'none' : 'block';
+            subtitleBtnText.textContent = loading ? 'Mendownload...' : 'Cari Subtitle';
+        }
+
+        function showSubtitleError(message) {
+            subtitleErrorText.textContent = message;
+            subtitleError.classList.add('show');
+        }
+
+        function hideSubtitleError() {
+            subtitleError.classList.remove('show');
+        }
+
+        // ========== UTILS ==========
+        function validateTimeFormat(time) {
+            const regex = /^\d+:[0-5]\d(:[0-5]\d)?$/;
+            return regex.test(time);
+        }
+
+        function timeToSeconds(timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            } else if (parts.length === 3) {
+                return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+            }
+            return 0;
+        }
+    </script>
+</body>
+</html>
