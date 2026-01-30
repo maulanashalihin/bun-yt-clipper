@@ -4,9 +4,7 @@ node_modules/
 # Environment files (sensitive)
 .env.local
 .env.*.local
-
-# Data files
-server-data.txt
+.env
 
 # Downloads
 downloads/*.mp4
@@ -24,8 +22,12 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Build output
-dist/
+# Build output (dist is INCLUDED for npm)
 build/
 youtube-clipper
 *.exe
+
+# Source files (only need dist and static for production)
+server.ts
+.git
+.gitignore

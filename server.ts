@@ -2,9 +2,10 @@
 import { serve, type ServerWebSocket } from "bun";
 import { spawn } from "child_process";
 import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from "fs";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import { fileURLToPath } from "url";
 
 // ============ CONFIGURATION ============
 // Load .env file (Bun automatically loads .env)
@@ -13,12 +14,12 @@ const HOST = process.env.HOST || "0.0.0.0";
 const DOWNLOAD_DIR = process.env.DOWNLOAD_DIR 
   ? resolve(process.cwd(), process.env.DOWNLOAD_DIR)
   : resolve(process.cwd(), "downloads");
-const STATIC_DIR = resolve(process.cwd(), "static");
-const COOKIES_PATH = process.env.COOKIES_PATH 
-  ? (process.env.COOKIES_PATH.startsWith("/") 
-      ? process.env.COOKIES_PATH 
-      : resolve(process.cwd(), process.env.COOKIES_PATH))
-  : resolve(process.cwd(), "cookies.txt");
+
+// Resolve static dir - check cwd first, then relative to script location (for bunx)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const STATIC_DIR_CWD = resolve(process.cwd(), "static");
+const STATIC_DIR_PKG = resolve(__dirname, "..", "static");
+const STATIC_DIR = existsSync(STATIC_DIR_CWD) ? STATIC_DIR_CWD : STATIC_DIR_PKG;
 const YT_DLP_EXTRA_ARGS = process.env.YT_DLP_EXTRA_ARGS?.split(" ").filter(Boolean) || [];
 const FORCE_IPV4 = process.env.FORCE_IPV4 === "true";
 const YT_DLP_USER_AGENT = process.env.YT_DLP_USER_AGENT || 
@@ -139,10 +140,6 @@ function getYTDLBaseArgs(): string[] {
     "--no-check-certificates",
     "--no-warnings",
   ];
-  
-  if (existsSync(COOKIES_PATH)) {
-    args.push("--cookies", COOKIES_PATH);
-  }
   
   if (FORCE_IPV4) {
     args.push("--force-ipv4");
@@ -842,11 +839,6 @@ const server = serve({
 console.log(`🚀 YouTube Clipper (Bun) running at http://${HOST}:${PORT}`);
 console.log(`📁 Downloads directory: ${DOWNLOAD_DIR}`);
 console.log(`📂 Static directory: ${STATIC_DIR}`);
-if (existsSync(COOKIES_PATH)) {
-  console.log(`🍪 Cookies enabled: ${COOKIES_PATH}`);
-} else {
-  console.log(`⚠️  Cookies not found at: ${COOKIES_PATH}`);
-}
 if (YT_DLP_EXTRA_ARGS.length > 0) {
   console.log(`⚙️  Extra yt-dlp args: ${YT_DLP_EXTRA_ARGS.join(" ")}`);
 }

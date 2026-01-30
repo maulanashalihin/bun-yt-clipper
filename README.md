@@ -1,98 +1,174 @@
 # YouTube Clipper - Bun Edition
 
-Versi rewrite dari YouTube Clipper menggunakan [Bun](https://bun.sh/) - JavaScript runtime super cepat.
+YouTube video clipper & subtitle downloader. Download video clips dan subtitle dengan mudah melalui web UI.
 
-## 🚀 Keunggulan Bun vs FastAPI
+![Demo](https://i.imgur.com/placeholder.gif)
 
-| Aspek | Bun (TypeScript) | FastAPI (Python) |
-|-------|------------------|------------------|
-| **Startup Time** | ~10ms | ~1-2s |
-| **Throughput** | 100k+ req/s | 10-20k req/s |
-| **Memory Usage** | ~20MB | ~100MB+ |
-| **Type Safety** | Native TypeScript | Pydantic |
-| **Single Binary** | ✅ `bun build --compile` | ❌ Perlu Python env |
-| **Package Manager** | Built-in (bun install) | pip |
-| **Test Runner** | Built-in | pytest (external) |
+## ✨ Fitur
 
-## 📋 Prerequisites
+- 🎬 Download video YouTube (clip/custom duration)
+- 📝 Download subtitle (SRT, VTT, TXT)
+- 🎨 Web UI yang clean & responsive
+- ⚡ Cepat & lightweight (Bun runtime)
+- 🔄 Real-time progress via WebSocket
 
+## 🚀 Quick Start
+
+### Prerequisites
+
+Pastikan sudah terinstall:
 - [Bun](https://bun.sh/) 1.0+
 - FFmpeg
 - yt-dlp
 
-## 🛠️ Installation
+### Install Dependencies (Pilih OS)
 
-### Ubuntu 24.04 LTS
+#### 🪟 Windows
+
+**1. Install Bun:**
+```powershell
+# PowerShell (Admin)
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+**2. Install FFmpeg:**
+```powershell
+# Via winget
+winget install Gyan.FFmpeg
+
+# Atau via chocolatey
+choco install ffmpeg
+
+# Atau download manual dari https://ffmpeg.org/download.html
+# Extract dan tambahkan ke PATH
+```
+
+**3. Install yt-dlp:**
+```powershell
+# Via pip
+pip install -U yt-dlp
+
+# Atau download binary
+curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe -o yt-dlp.exe
+# Pindahkan ke folder yang ada di PATH
+```
+
+#### 🍎 macOS
+
+**1. Install Bun:**
+```bash
+curl -fsSL https://bun.sh/install | bash
+source ~/.zshrc  # atau ~/.bashrc
+```
+
+**2. Install FFmpeg & yt-dlp:**
+```bash
+# Via Homebrew
+brew install ffmpeg yt-dlp
+
+# Atau pip untuk yt-dlp
+pip3 install -U yt-dlp
+```
+
+#### 🐧 Linux (Ubuntu/Debian)
 
 ```bash
-# 1. Install system dependencies
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y curl ffmpeg python3 python3-pip
-
-# 2. Install Bun runtime
+# 1. Install Bun
 curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc  # or restart terminal
+source ~/.bashrc
+
+# 2. Install FFmpeg & Python
+sudo apt update
+sudo apt install -y ffmpeg python3 python3-pip
 
 # 3. Install yt-dlp
 pip3 install -U yt-dlp
 
-# 4. Clone repository
+# Atau via apt (versi mungkin lebih lama)
+# sudo apt install yt-dlp
+```
+
+#### 🐧 Linux (Fedora/RHEL)
+
+```bash
+# 1. Install Bun
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+
+# 2. Install FFmpeg
+sudo dnf install ffmpeg
+
+# 3. Install yt-dlp
+pip3 install -U yt-dlp
+
+# Atau
+curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o ~/.local/bin/yt-dlp
+chmod +x ~/.local/bin/yt-dlp
+```
+
+#### 🐧 Linux (Arch)
+
+```bash
+# 1. Install Bun
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+
+# 2. Install FFmpeg & yt-dlp
+sudo pacman -S ffmpeg yt-dlp
+```
+
+### Clone & Run
+
+```bash
+# Clone repository
 git clone https://github.com/maulanashalihin/bun-yt-clipper.git
 cd bun-yt-clipper
 
-# 5. Install project dependencies
-bun install
-
-# 6. Create downloads directory
-mkdir -p downloads
-
-# 7. Setup environment
-cp .env.example .env
-# Edit .env and configure COOKIES_PATH if needed
-nano .env
-
-# 8. Run the server
-bun run start
-```
-
-### Quick Setup (Local Development)
-
-```bash
 # Install dependencies
 bun install
 
-# Copy static files from original project
-cp -r ../static ./static
-
-# Create downloads directory
-mkdir -p downloads
-
-# Setup environment (optional)
-cp .env.example .env
-# Edit .env file to configure cookies path, port, etc.
-```
-
-## 🚀 Running
-
-```bash
-# Development (with hot reload)
+# Run development mode (hot reload)
 bun run dev
 
-# Production
+# Atau run production mode
 bun run start
-
-# Build executable
-bun run compile
 ```
 
-## 📦 Building Single Binary
+Buka browser: http://localhost:8000
+
+## 📦 Installation via bunx (Alternative)
+
+Jika tidak ingin clone repo, bisa langsung jalankan via bunx:
 
 ```bash
-# Compile to standalone executable
-bun build server.ts --compile --outfile youtube-clipper
+# Install & run langsung (tanpa clone)
+bunx youtube-clipper-bun
 
-# Run the executable
-./youtube-clipper
+# Dengan custom port
+PORT=3000 bunx youtube-clipper-bun
+```
+
+## ⚙️ Configuration
+
+Buat file `.env` di root folder (opsional):
+
+```env
+# Server
+PORT=8000
+HOST=localhost
+
+# Download
+DOWNLOAD_DIR=downloads
+
+# Network
+FORCE_IPV4=true
+
+# Retry
+MAX_RETRIES=3
+RETRY_DELAY_MS=2000
+
+# Optional: Extra args untuk yt-dlp
+# YT_DLP_EXTRA_ARGS=--extractor-args "youtube:player_client=web"
 ```
 
 ## 🔌 API Endpoints
@@ -106,197 +182,142 @@ bun build server.ts --compile --outfile youtube-clipper
 | `/api/download-file/:name` | GET | Download processed file |
 | `/api/subtitles` | GET | List available subtitles |
 | `/api/download-subtitle` | POST | Download subtitle |
-| `/ws/progress?id=:id` | WS | Real-time progress (WebSocket) |
-
-## 🌐 WebSocket (Real-time Progress)
-
-Bun mendukung WebSocket native. Frontend bisa connect ke:
-```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/progress?id=clip_xxx');
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log(data.progress); // { status, progress, message }
-};
-```
-
-## 🔄 Migration dari Python
-
-### Perubahan Utama:
-
-| Python | Bun/TypeScript |
-|--------|----------------|
-| `FastAPI()` | `Bun.serve()` |
-| `@app.get()` | Route dalam `fetch` handler |
-| `Pydantic BaseModel` | `zod` schema |
-| `asyncio.subprocess` | `Bun.spawn()` atau `child_process` |
-| `BackgroundTasks` | `setImmediate` / WebSocket |
-| `FileResponse` | `Bun.file()` |
-
-### Performa
-
-Benchmark sederhana (lokal, MacBook M1):
-
-```bash
-# FastAPI (Uvicorn)
-$ wrk -t12 -c400 -d30s http://localhost:8000/
-Requests/sec:   8,245
-
-# Bun
-$ wrk -t12 -c400 -d30s http://localhost:8000/
-Requests/sec:  45,312
-```
-
-## ⚙️ Environment Variables
-
-Create `.env` file or copy from `.env.example`:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8000` | Server port |
-| `HOST` | `0.0.0.0` | Server host |
-| `COOKIES_PATH` | `cookies.txt` | Path to cookies.txt file |
-| `DOWNLOAD_DIR` | `downloads` | Download directory |
-| `YT_DLP_EXTRA_ARGS` | - | Extra arguments for yt-dlp |
-
-## 🍪 Setting Up Cookies (Recommended for VPS)
-
-YouTube may block requests from VPS/datacenter IPs. Using cookies from a logged-in account helps bypass this.
-
-### 1. Export Cookies from Browser
-- Install extension **"Get cookies.txt LOCALLY"** (Chrome/Firefox)
-- Login to YouTube in your browser
-- Open the extension and click **"Export"**
-- Save as `cookies.txt` in the project root
-
-### 2. Upload to VPS
-```bash
-scp cookies.txt user@your-vps-ip:~/bun-yt-clipper/
-```
-
-### 3. Verify in .env
-```bash
-cat .env | grep COOKIES_PATH
-# Should show: COOKIES_PATH=cookies.txt
-```
-
-## 🚀 Running as System Service (Ubuntu)
-
-Create systemd service for auto-start on boot:
-
-```bash
-# Create service file
-sudo nano /etc/systemd/system/youtube-clipper.service
-```
-
-Add this content:
-```ini
-[Unit]
-Description=YouTube Clipper Bun Server
-After=network.target
-
-[Service]
-Type=simple
-User=your-username
-WorkingDirectory=/home/your-username/bun-yt-clipper
-ExecStart=/home/your-username/.bun/bin/bun run start
-Restart=on-failure
-RestartSec=5
-Environment="PATH=/home/your-username/.bun/bin:/usr/local/bin:/usr/bin"
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable youtube-clipper
-sudo systemctl start youtube-clipper
-
-# Check status
-sudo systemctl status youtube-clipper
-
-# View logs
-sudo journalctl -u youtube-clipper -f
-```
+| `/ws/progress?id=:id` | WS | Real-time progress |
 
 ## 🐛 Troubleshooting
 
-### "yt-dlp not found"
-```bash
-# macOS
-brew install yt-dlp
+### Windows
 
-# Ubuntu/Debian
-sudo apt install yt-dlp
-# or use pip: pip3 install -U yt-dlp
+**"bun is not recognized"**
+- Restart terminal setelah install Bun
+- Atau jalankan: `$env:Path = [Environment]::GetEnvironmentVariable('Path', 'User')`
+
+**"ffmpeg not found"**
+```powershell
+# Cek FFmpeg terinstall
+ffmpeg -version
+
+# Jika tidak, install via winget
+winget install Gyan.FFmpeg
+# Restart terminal setelah install
 ```
 
-### "FFmpeg not found"
+**"yt-dlp not found"**
+```powershell
+# Install via pip
+pip install -U yt-dlp
+
+# Atau download binary ke folder di PATH
+# Cek PATH: $env:PATH -split ';'
+```
+
+### macOS
+
+**"bun: command not found"**
 ```bash
-# macOS
+# Reload shell config
+source ~/.zshrc  # atau ~/.bashrc
+
+# Atau install ulang
+curl -fsSL https://bun.sh/install | bash
+```
+
+**"ffmpeg not found"**
+```bash
+# Install via Homebrew
 brew install ffmpeg
 
-# Ubuntu/Debian  
-sudo apt install ffmpeg
+# Jika sudah install tapi tidak terdeteksi:
+brew link ffmpeg --force
 ```
 
-### "bun: command not found"
+### Linux
+
+**"Permission denied" saat install Bun**
 ```bash
-# Reinstall or reload shell
-source ~/.bashrc
-# or
-source ~/.zshrc
+# Tambahkan ke PATH manual
+export PATH="$HOME/.bun/bin:$PATH"
+echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.bashrc
 ```
 
-### YouTube blocks VPS IP (403/429 errors)
-This is common on VPS. Solutions:
-
-1. **Use cookies** (see 🍪 Setting Up Cookies section)
-
-2. **Force IPv4** - Most VPS have both IPv4 and IPv6, but IPv6 is often blocked:
-   ```env
-   FORCE_IPV4=true
-   ```
-
-3. **Use proxy** - Add to `.env`:
-   ```env
-   YT_DLP_EXTRA_ARGS=--proxy http://user:pass@proxy:port
-   ```
-
-4. **PO Token** (yt-dlp 2024.12+) - Add to `.env`:
-   ```env
-   YT_DLP_EXTRA_ARGS=--extractor-args "youtube:po_token=YOUR_TOKEN"
-   ```
-
-5. **Custom User-Agent** - If default doesn't work:
-   ```env
-   YT_DLP_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36...
-   ```
-
-6. **Combine multiple options** for best results:
-   ```env
-   FORCE_IPV4=true
-   COOKIES_PATH=cookies.txt
-   YT_DLP_EXTRA_ARGS=--extractor-args "youtube:player_client=web"
-   ```
-
-### "unable to extract initial player response" or "Sign in to confirm you're not a bot"
-This is YouTube's anti-bot protection. Try:
-1. Export fresh cookies from browser (must be logged in to YouTube)
-2. Update yt-dlp: `pip3 install -U yt-dlp`
-3. Use PO Token (see above)
-4. Add retry configuration:
-   ```env
-   MAX_RETRIES=5
-   RETRY_DELAY_MS=3000
-   ```
-
-### Port already in use
+**"yt-dlp: command not found" (setelah pip install)**
 ```bash
-PORT=8001 bun run start
+# Tambahkan local bin ke PATH
+export PATH="$HOME/.local/bin:$PATH"
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ```
 
-## 📄 License
+**"error while loading shared libraries" (FFmpeg)**
+```bash
+# Ubuntu/Debian
+sudo apt install ffmpeg libavcodec-extra
+
+# Fedora
+sudo dnf install ffmpeg-devel
+```
+
+### YouTube Blocks (403/429 Errors)
+
+Ini umum terjadi di VPS atau network tertentu. Solusi:
+
+**1. Force IPv4** (paling umum di VPS):
+```env
+FORCE_IPV4=true
+```
+
+**2. Use Proxy**:
+```env
+YT_DLP_EXTRA_ARGS=--proxy http://user:pass@proxy:port
+```
+
+**3. PO Token** (yt-dlp 2024.12+):
+```env
+YT_DLP_EXTRA_ARGS=--extractor-args "youtube:po_token=YOUR_TOKEN"
+```
+
+**4. Update yt-dlp**:
+```bash
+# Windows
+pip install -U yt-dlp
+
+# macOS/Linux
+pip3 install -U yt-dlp
+# atau
+yt-dlp -U
+```
+
+**5. Retry Configuration**:
+```env
+MAX_RETRIES=5
+RETRY_DELAY_MS=3000
+```
+
+### Port Already in Use
+
+```bash
+# Ganti port
+PORT=3000 bun run start
+
+# Atau kill process di port 8000
+# Windows:
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+
+# macOS/Linux:
+lsof -ti:8000 | xargs kill -9
+```
+
+## 📦 Build Executable
+
+```bash
+# Compile ke standalone executable
+bun run compile
+
+# Run executable
+./youtube-clipper  # macOS/Linux
+youtube-clipper.exe  # Windows
+```
+
+## 📝 License
 
 MIT

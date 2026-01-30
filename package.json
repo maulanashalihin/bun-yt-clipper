@@ -2,13 +2,21 @@
   "name": "youtube-clipper-bun",
   "version": "1.0.0",
   "description": "YouTube Clipper - Bun Edition",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "type": "module",
+  "bin": {
+    "youtube-clipper": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "static"
+  ],
   "scripts": {
     "start": "bun run server.ts",
     "dev": "bun --watch server.ts",
     "build": "bun build server.ts --outdir dist --target bun",
-    "compile": "bun build server.ts --compile --outfile youtube-clipper"
+    "compile": "bun build server.ts --compile --outfile youtube-clipper",
+    "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "zod": "^3.22.4"
@@ -18,5 +26,25 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maulanashalihin/bun-yt-clipper.git"
+  },
+  "keywords": [
+    "youtube",
+    "clipper",
+    "downloader",
+    "subtitle",
+    "bun"
+  ],
+  "author": "Maulana Shalihin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/maulanashalihin/bun-yt-clipper/issues"
+  },
+  "homepage": "https://github.com/maulanashalihin/bun-yt-clipper#readme",
+  "engines": {
+    "bun": ">=1.0.0"
   }
 }
