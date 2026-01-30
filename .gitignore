@@ -8,6 +8,7 @@ node_modules/
 # Cookies (sensitive)
 cookies.txt
 *.cookies.txt
+server-data.txt
 
 # Downloads
 downloads/*.mp4

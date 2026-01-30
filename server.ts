@@ -20,6 +20,11 @@ const COOKIES_PATH = process.env.COOKIES_PATH
       : resolve(process.cwd(), process.env.COOKIES_PATH))
   : resolve(process.cwd(), "cookies.txt");
 const YT_DLP_EXTRA_ARGS = process.env.YT_DLP_EXTRA_ARGS?.split(" ").filter(Boolean) || [];
+const FORCE_IPV4 = process.env.FORCE_IPV4 === "true";
+const YT_DLP_USER_AGENT = process.env.YT_DLP_USER_AGENT || 
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const MAX_RETRIES = parseInt(process.env.MAX_RETRIES || "3");
+const RETRY_DELAY_MS = parseInt(process.env.RETRY_DELAY_MS || "2000");
 
 // Create downloads directory
 if (!existsSync(DOWNLOAD_DIR)) {
@@ -128,14 +133,55 @@ async function cleanupOldFiles(): Promise<void> {
 setInterval(cleanupOldFiles, 30 * 60 * 1000);
 
 // ============ YT-DLP HELPERS ============
-async function runYTDL(args: string[]): Promise<string> {
+function getYTDLBaseArgs(): string[] {
+  const args: string[] = [
+    "--user-agent", YT_DLP_USER_AGENT,
+    "--no-check-certificates",
+    "--no-warnings",
+  ];
+  
+  if (existsSync(COOKIES_PATH)) {
+    args.push("--cookies", COOKIES_PATH);
+  }
+  
+  if (FORCE_IPV4) {
+    args.push("--force-ipv4");
+  }
+  
+  args.push(...YT_DLP_EXTRA_ARGS);
+  
+  return args;
+}
+
+// Alternative extractor args combinations for retry
+function getYTDLRetryArgs(retryAttempt: number): string[] {
+  // Different strategies for each retry
+  const strategies = [
+    [], // First attempt - use defaults
+    ["--extractor-args", "youtube:player_client=web"],
+    ["--extractor-args", "youtube:player_skip=webpage,configs,js"],
+  ];
+  
+  return strategies[Math.min(retryAttempt, strategies.length - 1)] || [];
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function runYTDL(args: string[], retryCount = 0, noRetry = false): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Add cookies if available
-    const finalArgs = [
-      ...(existsSync(COOKIES_PATH) ? ["--cookies", COOKIES_PATH] : []),
-      ...YT_DLP_EXTRA_ARGS,
-      ...args
-    ];
+    // Use different strategies for retries
+    const retryArgs = noRetry ? [] : getYTDLRetryArgs(retryCount);
+    const finalArgs = [...getYTDLBaseArgs(), ...args, ...retryArgs];
+    
+    // Mask sensitive info in logs
+    const logArgs = finalArgs.map(arg => 
+      arg.includes("://") && arg.includes("@") 
+        ? arg.replace(/:\/\/[^:]+:[^@]+@/, "://***:***@")
+        : arg
+    );
+    console.log(`[yt-dlp] Running (attempt ${retryCount + 1}): yt-dlp ${logArgs.join(" ")}`);
     
     const proc = spawn("yt-dlp", finalArgs, {
       stdio: ["ignore", "pipe", "pipe"],
@@ -152,11 +198,36 @@ async function runYTDL(args: string[]): Promise<string> {
       stderr += data.toString();
     });
 
-    proc.on("close", (code) => {
+    proc.on("close", async (code) => {
       if (code === 0) {
         resolve(stdout);
       } else {
-        reject(new Error(stderr || `yt-dlp exited with code ${code}`));
+        const errorMsg = stderr || `yt-dlp exited with code ${code}`;
+        console.error(`[yt-dlp] Error (attempt ${retryCount + 1}/${MAX_RETRIES}): ${errorMsg}`);
+        
+        // Retry logic for certain errors
+        if (!noRetry && retryCount < MAX_RETRIES - 1 && 
+            (errorMsg.includes("403") || 
+             errorMsg.includes("429") || 
+             errorMsg.includes("Sign in") ||
+             errorMsg.includes("unable to extract") ||
+             errorMsg.includes("IP") ||
+             errorMsg.includes("blocked") ||
+             errorMsg.includes("failed") ||
+             errorMsg.includes("Private"))) {
+          console.log(`[yt-dlp] Retrying in ${RETRY_DELAY_MS}ms...`);
+          await sleep(RETRY_DELAY_MS * (retryCount + 1));
+          try {
+            const result = await runYTDL(args, retryCount + 1);
+            resolve(result);
+            return;
+          } catch (retryError) {
+            reject(retryError);
+            return;
+          }
+        }
+        
+        reject(new Error(errorMsg));
       }
     });
 
@@ -174,8 +245,7 @@ async function runYTDLPWithProgress(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const args = [
-      ...(existsSync(COOKIES_PATH) ? ["--cookies", COOKIES_PATH] : []),
-      ...YT_DLP_EXTRA_ARGS,
+      ...getYTDLBaseArgs(),
       "-f", quality,
       "--merge-output-format", "mkv",
       "-o", outputPath,
@@ -299,7 +369,8 @@ async function handleGetVideoInfo(req: Request): Promise<Response> {
   }
 
   try {
-    const output = await runYTDL(["--dump-json", "-q", "--no-warnings", url]);
+    console.log(`[API] Fetching video info for: ${url}`);
+    const output = await runYTDL(["--dump-json", "--quiet", url]);
     const info = JSON.parse(output);
 
     // Get available formats with video and audio
@@ -490,15 +561,14 @@ async function handleGetSubtitles(req: Request): Promise<Response> {
   }
 
   try {
+    console.log(`[API] Fetching subtitles for: ${url}`);
     const output = await runYTDL([
       "--dump-json",
-      "-q",
-      "--no-warnings",
+      "--quiet",
       "--skip-download",
-      "--write-subs",
-      "--write-auto-subs",
+      "--list-subs",
       url,
-    ]);
+    ], 0, true);
 
     const info = JSON.parse(output);
     const subtitles: Record<string, SubtitleInfo> = {};
@@ -556,7 +626,7 @@ async function handleDownloadSubtitle(req: Request): Promise<Response> {
     const outputFile = join(DOWNLOAD_DIR, `${downloadId}.${format}`);
 
     // Get video info first for filename
-    const infoOutput = await runYTDL(["--dump-json", "-q", "--no-warnings", url]);
+    const infoOutput = await runYTDL(["--dump-json", "--quiet", url]);
     const info = JSON.parse(infoOutput);
     const videoTitle = info.title || "video";
 
@@ -569,7 +639,7 @@ async function handleDownloadSubtitle(req: Request): Promise<Response> {
       "--sub-format", format === "txt" ? "srt" : format,
       "-o", join(DOWNLOAD_DIR, downloadId),
       url,
-    ]);
+    ], 0, true); // Don't retry subtitles
 
     // Find the downloaded file
     const possibleNames = [

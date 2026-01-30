@@ -251,14 +251,45 @@ source ~/.zshrc
 
 ### YouTube blocks VPS IP (403/429 errors)
 This is common on VPS. Solutions:
+
 1. **Use cookies** (see 🍪 Setting Up Cookies section)
-2. **Use proxy** - Add to `.env`:
+
+2. **Force IPv4** - Most VPS have both IPv4 and IPv6, but IPv6 is often blocked:
+   ```env
+   FORCE_IPV4=true
+   ```
+
+3. **Use proxy** - Add to `.env`:
    ```env
    YT_DLP_EXTRA_ARGS=--proxy http://user:pass@proxy:port
    ```
-3. **PO Token** (yt-dlp 2024.12+) - Add to `.env`:
+
+4. **PO Token** (yt-dlp 2024.12+) - Add to `.env`:
    ```env
    YT_DLP_EXTRA_ARGS=--extractor-args "youtube:po_token=YOUR_TOKEN"
+   ```
+
+5. **Custom User-Agent** - If default doesn't work:
+   ```env
+   YT_DLP_USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36...
+   ```
+
+6. **Combine multiple options** for best results:
+   ```env
+   FORCE_IPV4=true
+   COOKIES_PATH=cookies.txt
+   YT_DLP_EXTRA_ARGS=--extractor-args "youtube:player_client=web"
+   ```
+
+### "unable to extract initial player response" or "Sign in to confirm you're not a bot"
+This is YouTube's anti-bot protection. Try:
+1. Export fresh cookies from browser (must be logged in to YouTube)
+2. Update yt-dlp: `pip3 install -U yt-dlp`
+3. Use PO Token (see above)
+4. Add retry configuration:
+   ```env
+   MAX_RETRIES=5
+   RETRY_DELAY_MS=3000
    ```
 
 ### Port already in use
