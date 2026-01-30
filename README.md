@@ -22,6 +22,41 @@ Versi rewrite dari YouTube Clipper menggunakan [Bun](https://bun.sh/) - JavaScri
 
 ## 🛠️ Installation
 
+### Ubuntu 24.04 LTS
+
+```bash
+# 1. Install system dependencies
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl ffmpeg python3 python3-pip
+
+# 2. Install Bun runtime
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc  # or restart terminal
+
+# 3. Install yt-dlp
+pip3 install -U yt-dlp
+
+# 4. Clone repository
+git clone https://github.com/maulanashalihin/bun-yt-clipper.git
+cd bun-yt-clipper
+
+# 5. Install project dependencies
+bun install
+
+# 6. Create downloads directory
+mkdir -p downloads
+
+# 7. Setup environment
+cp .env.example .env
+# Edit .env and configure COOKIES_PATH if needed
+nano .env
+
+# 8. Run the server
+bun run start
+```
+
+### Quick Setup (Local Development)
+
 ```bash
 # Install dependencies
 bun install
@@ -123,6 +158,68 @@ Create `.env` file or copy from `.env.example`:
 | `DOWNLOAD_DIR` | `downloads` | Download directory |
 | `YT_DLP_EXTRA_ARGS` | - | Extra arguments for yt-dlp |
 
+## 🍪 Setting Up Cookies (Recommended for VPS)
+
+YouTube may block requests from VPS/datacenter IPs. Using cookies from a logged-in account helps bypass this.
+
+### 1. Export Cookies from Browser
+- Install extension **"Get cookies.txt LOCALLY"** (Chrome/Firefox)
+- Login to YouTube in your browser
+- Open the extension and click **"Export"**
+- Save as `cookies.txt` in the project root
+
+### 2. Upload to VPS
+```bash
+scp cookies.txt user@your-vps-ip:~/bun-yt-clipper/
+```
+
+### 3. Verify in .env
+```bash
+cat .env | grep COOKIES_PATH
+# Should show: COOKIES_PATH=cookies.txt
+```
+
+## 🚀 Running as System Service (Ubuntu)
+
+Create systemd service for auto-start on boot:
+
+```bash
+# Create service file
+sudo nano /etc/systemd/system/youtube-clipper.service
+```
+
+Add this content:
+```ini
+[Unit]
+Description=YouTube Clipper Bun Server
+After=network.target
+
+[Service]
+Type=simple
+User=your-username
+WorkingDirectory=/home/your-username/bun-yt-clipper
+ExecStart=/home/your-username/.bun/bin/bun run start
+Restart=on-failure
+RestartSec=5
+Environment="PATH=/home/your-username/.bun/bin:/usr/local/bin:/usr/bin"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable youtube-clipper
+sudo systemctl start youtube-clipper
+
+# Check status
+sudo systemctl status youtube-clipper
+
+# View logs
+sudo journalctl -u youtube-clipper -f
+```
+
 ## 🐛 Troubleshooting
 
 ### "yt-dlp not found"
@@ -132,6 +229,7 @@ brew install yt-dlp
 
 # Ubuntu/Debian
 sudo apt install yt-dlp
+# or use pip: pip3 install -U yt-dlp
 ```
 
 ### "FFmpeg not found"
@@ -142,6 +240,26 @@ brew install ffmpeg
 # Ubuntu/Debian  
 sudo apt install ffmpeg
 ```
+
+### "bun: command not found"
+```bash
+# Reinstall or reload shell
+source ~/.bashrc
+# or
+source ~/.zshrc
+```
+
+### YouTube blocks VPS IP (403/429 errors)
+This is common on VPS. Solutions:
+1. **Use cookies** (see 🍪 Setting Up Cookies section)
+2. **Use proxy** - Add to `.env`:
+   ```env
+   YT_DLP_EXTRA_ARGS=--proxy http://user:pass@proxy:port
+   ```
+3. **PO Token** (yt-dlp 2024.12+) - Add to `.env`:
+   ```env
+   YT_DLP_EXTRA_ARGS=--extractor-args "youtube:po_token=YOUR_TOKEN"
+   ```
 
 ### Port already in use
 ```bash
